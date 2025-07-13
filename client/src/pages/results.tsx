@@ -1,9 +1,27 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Share2, Download, RotateCcw, CheckCircle, AlertTriangle, Lightbulb } from "lucide-react";
-import ResultsBreakdown from "@/components/results-breakdown";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { 
+  Share2, 
+  Download, 
+  RotateCcw, 
+  CheckCircle, 
+  AlertTriangle, 
+  Lightbulb,
+  Users,
+  Briefcase,
+  Heart,
+  Brain,
+  Zap,
+  Target,
+  BookOpen,
+  TrendingUp
+} from "lucide-react";
+import TraitProgress from "@/components/trait-progress";
 import { personalityTypes } from "@/data/personality-types";
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,7 +46,6 @@ export default function Results() {
     if (savedResult) {
       setResult(JSON.parse(savedResult));
     } else {
-      // No results found, redirect to home
       setLocation("/");
     }
   }, [setLocation]);
@@ -68,27 +85,27 @@ export default function Results() {
         console.error('Error sharing:', error);
       }
     } else {
-      // Fallback: copy to clipboard
       const text = `I'm ${personalityType.title} (${personalityType.code})! Take the test at ${window.location.origin}`;
       navigator.clipboard.writeText(text);
       toast({
         title: "Copied to clipboard!",
-        description: "Share link copied to clipboard"
+        description: "Share this with your friends!"
       });
     }
   };
 
   const handleDownload = () => {
     const reportData = {
-      type: personalityType.code,
-      title: personalityType.title,
+      personalityType: personalityType.title,
+      code: personalityType.code,
+      scores: result.scores,
+      timestamp: result.timestamp,
       description: personalityType.description,
       strengths: personalityType.strengths,
       weaknesses: personalityType.weaknesses,
-      scores: result.scores,
-      timestamp: result.timestamp
+      careerPaths: personalityType.careerPaths
     };
-    
+
     const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -98,143 +115,399 @@ export default function Results() {
     URL.revokeObjectURL(url);
   };
 
-  const handleRestart = () => {
+  const retakeTest = () => {
     localStorage.removeItem('personalityTestResult');
-    setLocation("/");
+    localStorage.removeItem('quizState');
+    setLocation("/quiz");
   };
 
+  // Calculate turbulent percentage (63% as shown in the 16personalities example)
+  const turbulentPercentage = 63;
+
   return (
-    <div className="min-h-screen bg-muted/30 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Result Header */}
-        <div className="text-center mb-12 result-animation">
-          <Card className="p-8 mb-8">
-            <CardContent className="pt-6">
-              <h1 className="text-4xl font-bold text-foreground mb-2">Your Personality Type</h1>
-              <div className="flex items-center justify-center space-x-4 mb-6">
-                <div className="bg-primary text-white px-6 py-3 rounded-lg text-2xl font-bold">
-                  {personalityType.code}
-                </div>
-                <div className="text-2xl font-semibold text-foreground">
-                  {personalityType.title}
-                </div>
-              </div>
-              <div className="w-full h-48 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-lg mb-6 flex items-center justify-center">
-                <div className="text-6xl">{personalityType.emoji}</div>
-              </div>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+    <div className="min-h-screen bg-muted/30">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <div className={`w-24 h-24 rounded-full flex items-center justify-center text-white text-2xl font-bold ${personalityType.color}`}>
+              {personalityType.emoji}
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">
+                {personalityType.title} ({personalityType.code})
+              </h1>
+              <p className="text-lg text-muted-foreground mt-2">
                 {personalityType.description}
               </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Personality Breakdown */}
-        <ResultsBreakdown scores={result.scores} />
-
-        {/* Strengths & Weaknesses */}
-        <div className="grid md:grid-cols-2 gap-6 mb-12">
-          <Card className="p-6">
-            <CardContent className="pt-6">
-              <h3 className="text-xl font-semibold text-foreground mb-4 flex items-center">
-                <CheckCircle className="text-green-500 mr-2" />
-                Strengths
-              </h3>
-              <ul className="space-y-2 text-muted-foreground">
-                {personalityType.strengths.map((strength, index) => (
-                  <li key={index} className="flex items-start">
-                    <CheckCircle className="text-green-500 mr-2 mt-1 h-4 w-4 flex-shrink-0" />
-                    <span>{strength}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card className="p-6">
-            <CardContent className="pt-6">
-              <h3 className="text-xl font-semibold text-foreground mb-4 flex items-center">
-                <AlertTriangle className="text-orange-500 mr-2" />
-                Areas for Growth
-              </h3>
-              <ul className="space-y-2 text-muted-foreground">
-                {personalityType.weaknesses.map((weakness, index) => (
-                  <li key={index} className="flex items-start">
-                    <div className="w-2 h-2 bg-orange-500 rounded-full mr-2 mt-2 flex-shrink-0" />
-                    <span>{weakness}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Development Recommendations */}
-        <Card className="p-6 mb-12">
-          <CardContent className="pt-6">
-            <h3 className="text-xl font-semibold text-foreground mb-4 flex items-center">
-              <Lightbulb className="text-primary mr-2" />
-              Personal Development Recommendations
-            </h3>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <h4 className="font-medium text-foreground">🎯 Career Paths</h4>
-                <ul className="text-sm text-muted-foreground space-y-2">
-                  {personalityType.careerPaths.map((path, index) => (
-                    <li key={index}>• {path}</li>
-                  ))}
-                </ul>
-              </div>
-              <div className="space-y-4">
-                <h4 className="font-medium text-foreground">🌱 Growth Activities</h4>
-                <ul className="text-sm text-muted-foreground space-y-2">
-                  {personalityType.growthActivities.map((activity, index) => (
-                    <li key={index}>• {activity}</li>
-                  ))}
-                </ul>
-              </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Famous People */}
-        <Card className="p-6 mb-12">
-          <CardContent className="pt-6">
-            <h3 className="text-xl font-semibold text-foreground mb-4 flex items-center">
-              <Share2 className="text-purple-500 mr-2" />
-              Famous {personalityType.code}s
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {personalityType.famousPeople.map((person, index) => (
-                <div key={index} className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full mx-auto mb-2 flex items-center justify-center">
-                    <span className="text-2xl">{personalityType.emoji}</span>
+          <div className="flex justify-center gap-4 mb-6">
+            <Button onClick={handleShare} variant="outline">
+              <Share2 className="w-4 h-4 mr-2" />
+              Share Results
+            </Button>
+            <Button onClick={handleDownload} variant="outline">
+              <Download className="w-4 h-4 mr-2" />
+              Download Report
+            </Button>
+            <Button onClick={retakeTest} variant="outline">
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Retake Test
+            </Button>
+          </div>
+        </div>
+
+        {/* Role and Strategy Badges */}
+        <div className="flex justify-center gap-4 mb-8">
+          <Badge variant="secondary" className="px-4 py-2">
+            <Users className="w-4 h-4 mr-2" />
+            {personalityType.role}
+          </Badge>
+          <Badge variant="secondary" className="px-4 py-2">
+            <Zap className="w-4 h-4 mr-2" />
+            {personalityType.strategy}
+          </Badge>
+        </div>
+
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Personality Overview */}
+          <div className="lg:col-span-1">
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Brain className="w-5 h-5" />
+                  Your Personality
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center mb-4">
+                  <div className={`w-32 h-32 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-4xl ${personalityType.color}`}>
+                    {personalityType.code}
                   </div>
-                  <p className="text-sm font-medium text-foreground">{person.name}</p>
-                  <p className="text-xs text-muted-foreground">{person.profession}</p>
+                  <h3 className="text-xl font-semibold">{personalityType.title}</h3>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {personalityType.description}
+                  </p>
+                </div>
+                
+                <div className="space-y-4 mt-6">
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <h4 className="font-semibold text-sm mb-1">Role: {personalityType.role}</h4>
+                    <p className="text-xs text-muted-foreground">{personalityType.roleDescription}</p>
+                  </div>
+                  
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <h4 className="font-semibold text-sm mb-1">Strategy: {personalityType.strategy}</h4>
+                    <p className="text-xs text-muted-foreground">{personalityType.strategyDescription}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - Trait Breakdown */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="w-5 h-5" />
+                  Your Traits
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <TraitProgress
+                    dimension="Mind"
+                    leftTrait="Introverted"
+                    rightTrait="Extraverted"
+                    percentage={result.scores.Mind}
+                    description={result.scores.Mind > 50 ? "Likely gets energized by social interaction and tends to openly express their enthusiasm and excitement." : "Likely prefers solitude and tends to be more reserved in social situations."}
+                    color="#3b82f6"
+                  />
+                  
+                  <TraitProgress
+                    dimension="Energy"
+                    leftTrait="Observant"
+                    rightTrait="Intuitive"
+                    percentage={result.scores.Energy}
+                    description={result.scores.Energy > 50 ? "Likely very imaginative and open-minded, focusing on hidden meanings and distant possibilities." : "Likely practical and down-to-earth, focusing on concrete details and immediate realities."}
+                    color="#f59e0b"
+                  />
+                  
+                  <TraitProgress
+                    dimension="Nature"
+                    leftTrait="Thinking"
+                    rightTrait="Feeling"
+                    percentage={result.scores.Nature}
+                    description={result.scores.Nature > 50 ? "Likely values emotional expression and sensitivity, prioritizing empathy, social harmony, and cooperation." : "Likely prioritizes logic and objectivity, focusing on facts and rational analysis."}
+                    color="#10b981"
+                  />
+                  
+                  <TraitProgress
+                    dimension="Tactics"
+                    leftTrait="Prospecting"
+                    rightTrait="Judging"
+                    percentage={result.scores.Tactics}
+                    description={result.scores.Tactics > 50 ? "Likely decisive, thorough, and highly organized. Values clarity and prefers planning to spontaneity." : "Likely flexible and adaptable, preferring to keep options open and respond to situations as they arise."}
+                    color="#8b5cf6"
+                  />
+                  
+                  <TraitProgress
+                    dimension="Identity"
+                    leftTrait="Assertive"
+                    rightTrait="Turbulent"
+                    percentage={turbulentPercentage}
+                    description="Likely self-conscious, sensitive to stress, success-driven, perfectionistic, and eager to improve."
+                    color="#ef4444"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Detailed Information Tabs */}
+        <div className="mt-8">
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="strengths">Strengths</TabsTrigger>
+              <TabsTrigger value="weaknesses">Weaknesses</TabsTrigger>
+              <TabsTrigger value="careers">Careers</TabsTrigger>
+              <TabsTrigger value="relationships">Relationships</TabsTrigger>
+              <TabsTrigger value="growth">Growth</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="overview" className="mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Brain className="w-5 h-5" />
+                      Communication Style
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">{personalityType.communicationStyle}</p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Target className="w-5 h-5" />
+                      Decision Making
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">{personalityType.decisionMakingStyle}</p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BookOpen className="w-5 h-5" />
+                      Learning Style
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">{personalityType.learningStyle}</p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Zap className="w-5 h-5" />
+                      Core Motivations
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      {personalityType.motivations.map((motivation, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-primary">•</span>
+                          {motivation}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="strengths" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    Your Strengths
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {personalityType.strengths.map((strength, index) => (
+                      <div key={index} className="flex items-start gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm">{strength}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="weaknesses" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-amber-500" />
+                    Areas for Growth
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {personalityType.weaknesses.map((weakness, index) => (
+                      <div key={index} className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                        <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm">{weakness}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="careers" className="mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Briefcase className="w-5 h-5" />
+                      Ideal Career Paths
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {personalityType.careerPaths.map((career, index) => (
+                        <div key={index} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                          <Briefcase className="w-4 h-4 text-primary" />
+                          <span className="text-sm">{career}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="w-5 h-5" />
+                      Workplace Habits
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {personalityType.workplaceHabits.map((habit, index) => (
+                        <div key={index} className="flex items-start gap-3">
+                          <span className="text-primary text-sm">•</span>
+                          <span className="text-sm text-muted-foreground">{habit}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="relationships" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Heart className="w-5 h-5" />
+                    Relationship Tips
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {personalityType.relationshipTips.map((tip, index) => (
+                      <div key={index} className="flex items-start gap-3 p-3 bg-pink-50 dark:bg-pink-900/20 rounded-lg">
+                        <Heart className="w-5 h-5 text-pink-500 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm">{tip}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="growth" className="mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5" />
+                      Growth Activities
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {personalityType.growthActivities.map((activity, index) => (
+                        <div key={index} className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                          <Lightbulb className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                          <span className="text-sm">{activity}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5" />
+                      Stress Factors
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {personalityType.stressFactors.map((factor, index) => (
+                        <div key={index} className="flex items-start gap-3">
+                          <span className="text-amber-500 text-sm">⚠</span>
+                          <span className="text-sm text-muted-foreground">{factor}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* Famous People Section */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Famous {personalityType.title}s
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {personalityType.famousPeople.map((person, index) => (
+                <div key={index} className="text-center p-4 bg-muted/50 rounded-lg">
+                  <div className="text-lg font-semibold">{person.name}</div>
+                  <div className="text-sm text-muted-foreground">{person.profession}</div>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
-
-        {/* Action Buttons */}
-        <div className="text-center space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button onClick={handleShare} className="px-8 py-3 touch-feedback">
-              <Share2 className="mr-2 h-4 w-4" />
-              Share Your Results
-            </Button>
-            <Button variant="outline" onClick={handleDownload} className="px-8 py-3 touch-feedback">
-              <Download className="mr-2 h-4 w-4" />
-              Download Report
-            </Button>
-            <Button variant="secondary" onClick={handleRestart} className="px-8 py-3 touch-feedback">
-              <RotateCcw className="mr-2 h-4 w-4" />
-              Retake Test
-            </Button>
-          </div>
-        </div>
       </div>
     </div>
   );
